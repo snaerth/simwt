@@ -26,6 +26,7 @@ export type TemplateOptions = {
   device?: string
   runtime?: string
   name?: string
+  apps?: string
 }
 
 async function bake(options: TemplateOptions) {
@@ -33,6 +34,12 @@ async function bake(options: TemplateOptions) {
   const { config, worktree } = context
   const model = options.device ?? config.device
   const runtime = resolveRuntime(await listRuntimes(), options.runtime ?? config.runtime)
+  const wanted = options.apps === undefined ? config.templateApps : options.apps.split(',')
+  const bakeApps = wanted.map((key) => key.trim()).filter((key) => config.apps[key] !== undefined)
+
+  if (bakeApps.length === 0) {
+    return fail(`None of those apps exist here. This project has: ${Object.keys(config.apps).join(', ')}`)
+  }
   const name = templateName(model, runtime.version, runtime.build)
 
   step(`Baking ${name} for ${worktree.project}`)
@@ -63,7 +70,7 @@ async function bake(options: TemplateOptions) {
 
   const apps: Record<string, { bundleId: string; scheme: string; fingerprint: string }> = {}
 
-  for (const appKey of Object.keys(config.apps)) {
+  for (const appKey of bakeApps) {
     const app = await resolveApp(config, appKey, worktree.path)
     const fingerprint = await projectFingerprint(app.root)
 
@@ -95,7 +102,7 @@ async function bake(options: TemplateOptions) {
     return fail('The template vanished mid bake')
   }
 
-  for (const appKey of Object.keys(config.apps)) {
+  for (const appKey of bakeApps) {
     const app = await resolveApp(config, appKey, worktree.path)
 
     await approveSchemes(device.dataPath, app.bundleId, app.schemes)
@@ -105,7 +112,7 @@ async function bake(options: TemplateOptions) {
   // is while shut down.
   await boot(udid)
 
-  for (const appKey of Object.keys(config.apps)) {
+  for (const appKey of bakeApps) {
     const app = await resolveApp(config, appKey, worktree.path)
 
     await disableAutoLaunch(udid, app)
@@ -114,8 +121,8 @@ async function bake(options: TemplateOptions) {
   await shutdown(udid)
 
   const approved = await readApprovedSchemes(device.dataPath)
-  const wanted = Object.values(apps).map((app) => app.scheme)
-  const verified = wanted.every((scheme) =>
+  const bakedSchemes = Object.values(apps).map((app) => app.scheme)
+  const verified = bakedSchemes.every((scheme) =>
     Object.keys(approved).some((key) => key.endsWith(`-->${scheme}`)),
   )
 

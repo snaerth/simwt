@@ -4,21 +4,35 @@
   "type": "object",
   "additionalProperties": false,
   "properties": {
-    "$schema": { "type": "string" },
+    "$schema": {
+      "type": "string"
+    },
     "project": {
       "type": "string",
       "description": "Overrides the project name, which otherwise comes from the git common dir."
     },
-    "defaultApp": { "type": "string", "description": "Which app `simwt up` uses with no argument." },
-    "device": { "type": "string", "description": "Simulator model, e.g. \"iPhone 17\".", "default": "iPhone 17" },
+    "defaultApp": {
+      "type": "string",
+      "description": "Which app `simwt up` uses with no argument."
+    },
+    "device": {
+      "type": "string",
+      "description": "Simulator model, e.g. \"iPhone 17\".",
+      "default": "iPhone 17"
+    },
     "runtime": {
       "type": "string",
       "description": "Runtime pin as \"version\" or \"version/build\". Pin the build when two Ready runtimes share a version.",
-      "examples": ["26.5", "26.0.1/23A8464"]
+      "examples": [
+        "26.5",
+        "26.0.1/23A8464"
+      ]
     },
     "warmOnCreate": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "Apps the worktree setup hook installs from the build cache."
     },
     "apps": {
@@ -27,12 +41,26 @@
       "additionalProperties": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["dir"],
+        "required": [
+          "dir"
+        ],
         "properties": {
-          "dir": { "type": "string", "description": "Path to the Expo app, relative to the repo root." }
+          "dir": {
+            "type": "string",
+            "description": "Path to the Expo app, relative to the repo root."
+          }
         }
       }
+    },
+    "templateApps": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Apps the template carries. Defaults to every declared app. Trim it to keep an app you rarely run out of every clone."
     }
   },
-  "required": ["apps"]
+  "required": [
+    "apps"
+  ]
 }

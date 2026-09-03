@@ -42,6 +42,7 @@ Flags
   --worktree <path>         act on this worktree rather than the current directory
   --device "iPhone 17"      device model, for create and template bake
   --runtime 26.0.1/23A8464  runtime pin, for template bake
+  --apps lotto,lengjan      which apps the template carries, for template bake
   --build                   force a native rebuild
   --detached                give Metro its own Orca tab and return
   --no-metro                point the dev client but do not start Metro
@@ -71,7 +72,7 @@ export async function main(argv: string[]) {
 
   setQuiet(flag(argv, 'quiet'))
 
-  const valued = new Set(['app', 'worktree', 'device', 'runtime', 'budget', 'name'])
+  const valued = new Set(['app', 'worktree', 'device', 'runtime', 'budget', 'name', 'apps'])
   const positional = argv.filter((entry, index) => {
     if (entry.startsWith('--')) {
       return false
@@ -126,6 +127,7 @@ export async function main(argv: string[]) {
         worktree,
         device: value(argv, 'device'),
         runtime: value(argv, 'runtime'),
+        apps: value(argv, 'apps'),
         name: rest[1],
       })
     }

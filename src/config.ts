@@ -11,6 +11,8 @@ export type SimwtConfig = {
   /** Optional pin, `version` or `version/build`. Only `template bake` reads it. */
   runtime: string | null
   warmOnCreate: string[]
+  /** Apps the template carries. Defaults to every declared app. */
+  templateApps: string[]
   apps: Record<string, AppConfig>
 }
 
@@ -57,6 +59,7 @@ export function loadConfig(worktreeRoot: string, project: string): SimwtConfig |
       device: parsed.device ?? 'iPhone 17',
       runtime: parsed.runtime ?? null,
       warmOnCreate: parsed.warmOnCreate ?? [defaultApp],
+      templateApps: parsed.templateApps ?? keys,
       apps,
     }
   }
@@ -72,6 +75,7 @@ export function loadConfig(worktreeRoot: string, project: string): SimwtConfig |
     device: 'iPhone 17',
     runtime: null,
     warmOnCreate: [project],
+    templateApps: [project],
     apps: { [project]: { dir: '.' } },
   }
 }

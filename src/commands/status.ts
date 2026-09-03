@@ -43,7 +43,12 @@ export async function status(options: StatusOptions) {
     }
 
     for (const [appKey, app] of apps) {
-      rows.push({ ...base, app: appKey, port: app.port, metro: await isMetroUp(app.port) })
+      rows.push({
+        ...base,
+        app: appKey,
+        port: app.port,
+        metro: app.port !== null && (await isMetroUp(app.port)),
+      })
     }
   }
 
@@ -62,7 +67,7 @@ export async function status(options: StatusOptions) {
 
     log(
       `${marker} ${row.worktree.padEnd(24)} ${row.app.padEnd(10)} ${row.state.padEnd(9)} ` +
-        `${String(row.port ?? '-').padEnd(6)} ${(row.metro ? 'metro up' : 'metro down').padEnd(11)} ` +
+        `${String(row.port ?? '-').padEnd(6)} ${(row.metro ? 'metro up' : row.port === null ? 'not run' : 'metro down').padEnd(11)} ` +
         `${DIM}${formatBytes(row.size)}${RESET}`,
     )
   }

@@ -41,7 +41,7 @@ async function classify(device: Device, olderThanDays: number): Promise<Candidat
   }
 
   for (const app of Object.values(sim.apps)) {
-    if (await isMetroUp(app.port)) {
+    if (app.port !== null && (await isMetroUp(app.port))) {
       return { device, verdict: 'live', reason: `metro serving on ${app.port}` }
     }
   }

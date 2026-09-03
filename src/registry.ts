@@ -10,7 +10,8 @@ export const LOCK_PATH = path.join(STATE_DIR, 'state.lock')
 export const BUILD_CACHE_DIR = path.join(STATE_DIR, 'build-cache')
 
 export type AppRecord = {
-  port: number
+  /** Null until Metro actually runs for this app. A port is meaningless before that. */
+  port: number | null
   fingerprint: string | null
   metroTerminal: string | null
   updatedAt: string

@@ -57,19 +57,29 @@ Pin the build when two Ready runtimes share a version.
 
 ## Orca worktree hooks
 
-```yaml
-# orca.yaml
-scripts:
-  setup: |
-    export PATH="$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-    command -v simwt >/dev/null 2>&1 && simwt create --worktree "${ORCA_WORKTREE_PATH:-$PWD}" --quiet || true
-    bun install
-    command -v simwt >/dev/null 2>&1 && simwt warm --budget 80 --quiet || true
-  archive: |
-    export PATH="$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-    command -v simwt >/dev/null 2>&1 && simwt destroy --worktree "${ORCA_WORKTREE_PATH:-$PWD}" --quiet
-    true
+Set these in Orca's settings, under Worktree Hooks. They only do anything on a machine that has
+simwt installed, so they belong to the machine rather than the repo.
+
+Setup Script:
+
+```sh
+export PATH="$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+command -v simwt >/dev/null 2>&1 && simwt create --worktree "${ORCA_WORKTREE_PATH:-$PWD}" --quiet || true
+bun install
+command -v simwt >/dev/null 2>&1 && simwt warm --budget 80 --quiet || true
 ```
+
+Archive Script:
+
+```sh
+export PATH="$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+command -v simwt >/dev/null 2>&1 && simwt destroy --worktree "${ORCA_WORKTREE_PATH:-$PWD}" --quiet
+true
+```
+
+The same text can go in a committed `orca.yaml` under `scripts.setup` and `scripts.archive`, to
+share it with a team. Note that a non-empty Setup Script in Orca's settings **overrides** the
+committed one, so clear the settings field if you go that way.
 
 Orca runs hook scripts through bash with a 120 second timeout, which is why `create` does only
 the clone and `warm` takes a budget and never builds. `create` runs before `bun install` because

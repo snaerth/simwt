@@ -40,7 +40,9 @@ function taken(state: State) {
 
   for (const sim of Object.values(state.sims)) {
     for (const app of Object.values(sim.apps)) {
-      ports.add(app.port)
+      if (app.port !== null) {
+        ports.add(app.port)
+      }
     }
   }
 
@@ -55,7 +57,7 @@ function taken(state: State) {
 export function allocate(state: State, udid: string, appKey: string): number {
   const existing = state.sims[udid]?.apps[appKey]?.port
 
-  if (existing !== undefined) {
+  if (existing !== undefined && existing !== null) {
     return existing
   }
 

@@ -11,7 +11,6 @@ import {
   shutdown,
 } from '../simctl.ts'
 import { note, ok, step, warn } from '../log.ts'
-import { allocate } from '../ports.ts'
 
 export type CreateOptions = { worktree?: string; device?: string; force: boolean }
 
@@ -98,11 +97,11 @@ export async function create(options: CreateOptions) {
   const now = new Date().toISOString()
   // A clone already carries whatever the template baked. Recording those fingerprints is what
   // stops the first `up` reinstalling an app that is byte for byte already there.
-  const inherited: Record<string, { port: number; fingerprint: string | null; metroTerminal: null; updatedAt: string }> = {}
+  const inherited: Record<string, { port: null; fingerprint: string | null; metroTerminal: null; updatedAt: string }> = {}
 
   if (template !== null && templateUdid !== null) {
     for (const [appKey, app] of Object.entries(template.record.apps)) {
-      inherited[appKey] = { port: 0, fingerprint: app.fingerprint, metroTerminal: null, updatedAt: now }
+      inherited[appKey] = { port: null, fingerprint: app.fingerprint, metroTerminal: null, updatedAt: now }
     }
   }
 
@@ -119,9 +118,8 @@ export async function create(options: CreateOptions) {
       apps: {},
     }
 
-    // Ports are handed out by `up`, so the inherited records start unassigned.
     for (const [appKey, record] of Object.entries(inherited)) {
-      draft.sims[udid]!.apps[appKey] = { ...record, port: allocate(draft, udid, appKey) }
+      draft.sims[udid]!.apps[appKey] = record
     }
   })
 

@@ -44,7 +44,7 @@ export async function down(options: DownOptions) {
         continue
       }
 
-      if (await isMetroUp(app.port)) {
+      if (app.port !== null && (await isMetroUp(app.port))) {
         // A foreground Metro owns someone's terminal, so it is theirs to stop.
         warn(`Metro for ${appKey} is running on ${app.port} in a terminal. Press Ctrl+C there.`)
       }
