@@ -7,9 +7,7 @@ import { fail } from './log.ts'
  * global, two projects cannot be handed the same port, which a per project base can only
  * approximate.
  *
- * The range sits clear of 8081 and 8082, which plain `expo start` and the Android device use,
- * and clear of 8181 to 8219, which lotto-apps' own scripts/sim.ts still hands out. Once that
- * script is gone this can move down.
+ * The range sits clear of 8081 and 8082, which plain `expo start` and the Android device use.
  */
 const RANGE_START = 8301
 const RANGE_END = 8400
