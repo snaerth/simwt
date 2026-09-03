@@ -1,0 +1,18 @@
+{
+  "name": "simwt",
+  "version": "0.1.0",
+  "description": "One iOS simulator per git worktree, cloned from a golden template",
+  "type": "module",
+  "private": true,
+  "bin": { "simwt": "./bin/simwt.ts" },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@expo/fingerprint": "0.20.7"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "~5.9.2"
+  }
+}
