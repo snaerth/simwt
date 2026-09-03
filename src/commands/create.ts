@@ -6,6 +6,7 @@ import {
   cloneDevice,
   createDevice,
   deleteDevice,
+  findDevice,
   listDevices,
   listRuntimes,
   shutdown,
@@ -65,6 +66,16 @@ export async function create(options: CreateOptions) {
   let templateUdid: string | null = null
 
   if (template !== null) {
+    // A clone taken from a booted device comes out subtly broken: the app is present but will
+    // not launch, and the deep link then times out. Anything can have booted the template since
+    // it was baked, so its state is checked here rather than trusted.
+    const live = await findDevice(template.udid)
+
+    if (live !== null && live.state !== 'Shutdown') {
+      step(`Shutting down ${template.record.name} before cloning it`)
+      await shutdown(template.udid)
+    }
+
     step(`Cloning ${template.record.name}`)
 
     const cloned = await cloneDevice(template.udid, name)

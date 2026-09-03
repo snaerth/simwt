@@ -148,7 +148,8 @@ export async function pointDevClient(app: App, device: Device, port: number) {
   const result = await openUrl(device.udid, `${app.scheme}://expo-development-client/?url=${target}`)
 
   if (result.exitCode !== 0) {
-    warn(`Deep link failed. Pick "http://localhost:${port}" in the dev launcher.`)
+    warn(`Deep link failed. ${result.stderr.trim().split('\n')[0] ?? ''}`)
+    note(`Pick "http://localhost:${port}" in the dev launcher, or run \`simwt create --force\`.`)
 
     return false
   }
