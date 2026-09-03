@@ -30,7 +30,18 @@ simwt gc --all        # shrink simulators in place by pruning their caches
 simwt template bake   # bake the template that worktrees clone
 ```
 
-`simwt create` and `simwt destroy` are the worktree hooks and are not usually run by hand.
+`simwt create` and `simwt warm` are the worktree setup hooks and `simwt destroy` the archive hook,
+so none of them are usually run by hand.
+
+`warm` boots the simulator, shows it in Orca's mobile emulator tab, installs the app from the
+build cache, starts Metro in its own Orca tab and opens the app on it. **Metro's logs are in that
+tab**, titled `metro:<app>:<port>`. `simwt down` closes it.
+
+It never builds, because Orca kills a hook at two minutes. On a cache miss it says so and leaves
+the app for `simwt up`, which may build.
+
+Pass `--no-launch` to warm without starting Metro. Worth doing if you keep many worktrees open at
+once, since otherwise each one gets its own Metro process.
 
 ## Per project config
 

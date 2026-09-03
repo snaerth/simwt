@@ -82,14 +82,14 @@ export async function up(options: UpOptions) {
   if (await isMetroUp(port)) {
     ok(`Metro is already serving ${app.key} on ${port}`)
     await pointDevClient(app, device, port)
-    await attachPane(device.udid)
+    await attachPane(device.udid, context.worktree.path)
 
     return
   }
 
   const attach = async () => {
     await pointDevClient(app, device, port)
-    await attachPane(device.udid)
+    await attachPane(device.udid, context.worktree.path)
   }
 
   if (options.detached) {

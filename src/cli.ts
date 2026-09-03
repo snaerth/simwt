@@ -27,7 +27,7 @@ const HELP = `simwt - one iOS simulator per git worktree
 
   simwt up [app]            bring this worktree up on its simulator and run Metro
   simwt create              clone a simulator for this worktree (worktree setup hook)
-  simwt warm                boot it and install from the build cache (worktree setup hook)
+  simwt warm                boot it, install, and open the app on Metro (worktree setup hook)
   simwt destroy             delete this worktree's simulator (worktree archive hook)
   simwt down [app]          stop this worktree's detached Metro
   simwt status              every simwt simulator on this machine
@@ -49,6 +49,7 @@ Flags
   --apply                   actually do it, for sweep and gc
   --all                     include your own simulators, for gc
   --budget <seconds>        time warm is allowed to take
+  --no-launch               warm without starting Metro or opening the app
   --force                   recreate even if a simulator already exists
   --json --quiet            machine readable, and hook friendly
 `
@@ -99,7 +100,11 @@ export async function main(argv: string[]) {
     case 'create':
       return create({ worktree, device: value(argv, 'device'), force: flag(argv, 'force') })
     case 'warm':
-      return warm({ worktree, budgetSeconds: Number(value(argv, 'budget') ?? 80) })
+      return warm({
+        worktree,
+        budgetSeconds: Number(value(argv, 'budget') ?? 80),
+        launch: !flag(argv, 'no-launch'),
+      })
     case 'destroy':
       return destroy({ worktree })
     case 'down':

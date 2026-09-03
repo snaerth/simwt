@@ -69,6 +69,17 @@ Two tooling notes: `defaults read <absolute path>` does not work on macOS 26, an
 handles both. `Add` fails when the key exists and `Set` fails when it does not, so run both and
 ignore the exit code.
 
+## `expo run:ios` exits non-zero after a successful build
+
+It ends by opening the app, and that step fails on its own terms: `simctl openurl` against an app
+that is mid cold launch times out with `NSPOSIXErrorDomain code=60`. By then `Build Succeeded` has
+already printed and the `.app` is installed.
+
+So the exit code does not answer "did the build work". What is installed does. Check
+`simctl get_app_container` before calling it a build failure, or a bake dies on the one step whose
+result is thrown away anyway, since the dev client has to be cold started on the deep link
+regardless.
+
 ## Names are decoration, UDIDs are identity
 
 `xcrun simctl clone <src> <name>` does **not** fail when the name already exists. It silently

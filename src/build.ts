@@ -112,8 +112,16 @@ export async function ensureApp(options: {
     cwd: app.root,
   })
 
-  if (built !== 0) {
+  // `expo run:ios` ends by opening the app, and that last step fails on its own terms: openurl
+  // against an app mid cold launch times out with POSIX 60. The build and the install are already
+  // done by then, so what is installed decides whether this worked, not the exit code. We throw
+  // the launch away regardless, since pointDevClient has to cold start the app itself.
+  if (built !== 0 && (await appContainer(udid, app.bundleId)) === null) {
     fail('Native build failed')
+  }
+
+  if (built !== 0) {
+    warn('The build succeeded but `expo run:ios` could not open the app. Carrying on.')
   }
 
   await cacheBuild(udid, project, app, fingerprint)

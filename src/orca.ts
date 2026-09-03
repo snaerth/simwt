@@ -34,9 +34,20 @@ async function orcaJson<T>(args: string[]): Promise<T | null> {
   }
 }
 
-export async function attachPane(udid: string) {
+/**
+ * Opens the mobile emulator tab in Orca and points it at this device.
+ *
+ * The worktree has to be named explicitly. A hook shell has no active worktree, so without it
+ * Orca either picks the wrong one or attaches nowhere, and the simulator ends up running with no
+ * window anywhere, which reads as nothing having happened.
+ */
+export async function attachPane(udid: string, worktreePath: string) {
   if (await hasOrca()) {
-    await run('orca', ['emulator', 'attach', udid], { timeoutMs: 30_000 })
+    await run(
+      'orca',
+      ['emulator', 'attach', udid, '--worktree', `path:${worktreePath}`, '--focus'],
+      { timeoutMs: 60_000 },
+    )
   }
 }
 
