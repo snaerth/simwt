@@ -10,9 +10,9 @@ import { isMetroUp } from '../ports.ts'
 import { formatBytes } from '../disk.ts'
 import { DIM, RESET, log, ok, warn } from '../log.ts'
 
-export type SweepOptions = { apply: boolean; olderThanDays: number }
+export type SweepOptions = { apply: boolean; olderThanDays: number; includeIdle: boolean }
 
-type Verdict = 'live' | 'orphan' | 'unknown' | 'foreign'
+type Verdict = 'live' | 'orphan' | 'idle' | 'unknown'
 
 type Candidate = { device: Device; verdict: Verdict; reason: string }
 
@@ -36,6 +36,26 @@ async function classify(device: Device, olderThanDays: number): Promise<Candidat
     }
   }
 
+  const orca = orcaWorktrees?.find((entry) => entry.path === sim.worktreePath)
+
+  // Whether the worktree still exists is settled first. A simulator left running for a worktree
+  // that has been archived is garbage that happens to be booted, and checking the boot state
+  // before this is what let those pile up.
+  if (orca?.isArchived === true) {
+    return { device, verdict: 'orphan', reason: 'Orca reports the worktree archived' }
+  }
+
+  if (!(await isLiveWorktree(sim.worktreePath))) {
+    // The path is not a git worktree. That is only proof of death if the project it belonged to
+    // is still visible, otherwise the whole checkout may just be absent right now.
+    if (orcaWorktrees === null) {
+      return { device, verdict: 'unknown', reason: 'cannot reach Orca to confirm' }
+    }
+
+    return { device, verdict: 'orphan', reason: 'worktree no longer exists' }
+  }
+
+  // From here the worktree is alive, so the question is only whether someone is using it.
   if (device.state === 'Booted') {
     return { device, verdict: 'live', reason: 'booted' }
   }
@@ -50,38 +70,18 @@ async function classify(device: Device, olderThanDays: number): Promise<Candidat
     return { device, verdict: 'live', reason: 'used in the last 30 minutes' }
   }
 
-  const orca = orcaWorktrees?.find((entry) => entry.path === sim.worktreePath)
-
-  if (orca?.isArchived === true) {
-    return { device, verdict: 'orphan', reason: 'Orca reports the worktree archived' }
-  }
-
-  if (await isLiveWorktree(sim.worktreePath)) {
-    return { device, verdict: 'live', reason: 'worktree is a live git checkout' }
-  }
-
-  // The path is not a git worktree. That is only proof of death if we can still see the project
-  // it belonged to, otherwise the whole checkout may just be absent right now.
-  const projectVisible =
-    orcaWorktrees !== null &&
-    orcaWorktrees.some((entry) => entry.repoId === orca?.repoId || entry.path === sim.worktreePath)
-
-  if (!projectVisible && orcaWorktrees === null) {
-    return { device, verdict: 'unknown', reason: 'cannot reach Orca to confirm' }
-  }
-
   const lastBooted = device.lastBootedAt === null ? 0 : Date.parse(device.lastBootedAt)
-  const ageDays = (Date.now() - lastBooted) / 86_400_000
+  const idleDays = lastBooted === 0 ? Infinity : (Date.now() - lastBooted) / 86_400_000
 
-  if (lastBooted !== 0 && ageDays < olderThanDays) {
+  if (idleDays >= olderThanDays) {
     return {
       device,
-      verdict: 'unknown',
-      reason: `worktree is gone but it was booted ${Math.round(ageDays)}d ago`,
+      verdict: 'idle',
+      reason: `worktree is live but the simulator has not booted in ${Math.round(idleDays)}d`,
     }
   }
 
-  return { device, verdict: 'orphan', reason: 'worktree no longer exists' }
+  return { device, verdict: 'live', reason: 'worktree is a live git checkout' }
 }
 
 export async function sweep(options: SweepOptions) {
@@ -95,7 +95,11 @@ export async function sweep(options: SweepOptions) {
     candidates.push(await classify(device, options.olderThanDays))
   }
 
-  const orphans = candidates.filter((candidate) => candidate.verdict === 'orphan')
+  const idle = candidates.filter((candidate) => candidate.verdict === 'idle')
+  const orphans = candidates.filter(
+    (candidate) =>
+      candidate.verdict === 'orphan' || (options.includeIdle && candidate.verdict === 'idle'),
+  )
   const reclaimable = orphans.reduce((total, candidate) => total + candidate.device.dataPathSize, 0)
 
   for (const candidate of candidates) {
@@ -123,6 +127,14 @@ export async function sweep(options: SweepOptions) {
       `Would remove ${orphans.length} simulator(s) and ${stale.length} stale record(s), reclaiming ${formatBytes(reclaimable)}.`,
     )
     log('Re-run with --apply to do it.')
+
+    if (!options.includeIdle && idle.length > 0) {
+      const idleBytes = idle.reduce((total, entry) => total + entry.device.dataPathSize, 0)
+
+      log(
+        `${idle.length} more belong to live worktrees but have sat unused, holding ${formatBytes(idleBytes)}. --include-idle removes those too; they re-clone in seconds.`,
+      )
+    }
 
     return
   }

@@ -48,6 +48,7 @@ Flags
   --no-metro                point the dev client but do not start Metro
   --apply                   actually do it, for sweep and gc
   --all                     include your own simulators, for gc
+  --include-idle            also remove simulators for live but unused worktrees, for sweep
   --budget <seconds>        time warm is allowed to take
   --no-launch               warm without starting Metro or opening the app
   --force                   recreate even if a simulator already exists
@@ -115,6 +116,7 @@ export async function main(argv: string[]) {
       return sweep({
         apply: flag(argv, 'apply'),
         olderThanDays: Number(value(argv, 'older-than') ?? 7),
+        includeIdle: flag(argv, 'include-idle'),
       })
     case 'gc':
       return gc({ apply: flag(argv, 'apply'), all: flag(argv, 'all') })
