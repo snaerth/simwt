@@ -36,8 +36,9 @@ export async function usableTemplates(state: State): Promise<ResolvedTemplate[]>
 }
 
 /**
- * Prefer a template that already carries this project's apps, then the newest runtime, then the
- * most recently baked. Never guess across projects when a project-specific one exists.
+ * Only ever a template baked for this project. Another project's template carries the wrong app
+ * and the wrong scheme approvals, so cloning it is strictly worse than starting from a bare
+ * simulator, and it silently attributes that project's apps to this worktree.
  */
 export async function pickTemplate(
   state: State,
@@ -50,31 +51,25 @@ export async function pickTemplate(
     return null
   }
 
-  const scored = candidates
-    .filter((candidate) =>
-      deviceHint === null
-        ? true
-        : shortDeviceType(candidate.record.deviceTypeIdentifier).toLowerCase() ===
-          deviceHint.toLowerCase().replace(/\s+/g, '-'),
-    )
-    .sort((a, b) => {
-      const projectRank =
-        Number(b.record.project === project) - Number(a.record.project === project)
+  const mine = candidates.filter((candidate) => candidate.record.project === project)
 
-      if (projectRank !== 0) {
-        return projectRank
-      }
+  if (mine.length === 0) {
+    return null
+  }
 
-      const version = compareVersions(b.record.runtimeVersion, a.record.runtimeVersion)
+  const preferred = mine.filter((candidate) =>
+    deviceHint === null
+      ? true
+      : shortDeviceType(candidate.record.deviceTypeIdentifier).toLowerCase() ===
+        deviceHint.toLowerCase().replace(/\s+/g, '-'),
+  )
+  const scored = (preferred.length > 0 ? preferred : mine).sort((a, b) => {
+    const version = compareVersions(b.record.runtimeVersion, a.record.runtimeVersion)
 
-      if (version !== 0) {
-        return version
-      }
+    return version !== 0 ? version : b.record.bakedAt.localeCompare(a.record.bakedAt)
+  })
 
-      return b.record.bakedAt.localeCompare(a.record.bakedAt)
-    })
-
-  return scored[0] ?? candidates[0] ?? null
+  return scored[0] ?? null
 }
 
 function compareVersions(a: string, b: string) {

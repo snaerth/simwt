@@ -60,7 +60,7 @@ export async function warm(options: WarmOptions) {
     const ready = await ensureReady(context, appKey, { forceBuild: false, allowBuild: false })
 
     if (ready === null) {
-      note(`No cached build for ${appKey} yet. Run \`simwt up\` once to build it.`)
+      warn(`No cached build for ${appKey}. Run \`simwt up\` in the worktree to build it once.`)
       continue
     }
 

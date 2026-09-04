@@ -5,7 +5,7 @@ import { ensureApp, type EnsureResult } from './build.ts'
 import { approveSchemes, disableAutoLaunch } from './devclient.ts'
 import { findDevice, type Device } from './simctl.ts'
 import { allocate } from './ports.ts'
-import { fail, note, ok } from './log.ts'
+import { fail, ok, warn } from './log.ts'
 import type { Context } from './context.ts'
 
 export type Ready = { app: App; device: Device; port: number; outcome: EnsureResult }
@@ -53,7 +53,7 @@ export async function ensureReady(
   })
 
   if (outcome === null) {
-    note(`${app.key} has no cached build for ${fingerprint.slice(0, 12)}, so it was left alone.`)
+    warn(`${app.key} has no cached build for ${fingerprint.slice(0, 12)}, so it was left alone.`)
 
     return null
   }

@@ -102,7 +102,9 @@ export async function create(options: CreateOptions) {
     }
 
     udid = created.udid
-    note('Run `simwt template bake` so future worktrees clone a warm simulator instead of a cold one.')
+    // A hook runs with --quiet, so the one thing the user has to act on cannot be a note.
+    warn(`No template for ${worktree.project}. Made a bare simulator, so the app is not installed.`)
+    note('Run `simwt template bake` once, then future worktrees clone a warm simulator.')
   }
 
   const now = new Date().toISOString()
@@ -112,6 +114,10 @@ export async function create(options: CreateOptions) {
 
   if (template !== null && templateUdid !== null) {
     for (const [appKey, app] of Object.entries(template.record.apps)) {
+      if (config.apps[appKey] === undefined) {
+        continue
+      }
+
       inherited[appKey] = { port: null, fingerprint: app.fingerprint, metroTerminal: null, updatedAt: now }
     }
   }
