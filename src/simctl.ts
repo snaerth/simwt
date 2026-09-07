@@ -189,6 +189,16 @@ export async function boot(udid: string) {
       fail(`The simulator did not boot. ${result.stderr.trim()}`)
     }
   }
+
+  // `bootstatus` can return while the device is still transitioning, and every simctl call that
+  // follows then fails on the state rather than on anything it was asked to do.
+  for (let attempt = 0; attempt < 30; attempt++) {
+    if ((await findDevice(udid))?.state === 'Booted') {
+      return
+    }
+
+    await sleep(1000)
+  }
 }
 
 /** Tolerates an already shut down device, which reports a non-zero exit. */
@@ -210,8 +220,23 @@ export async function deleteDevice(udid: string) {
   return run('xcrun', ['simctl', 'delete', udid], { timeoutMs: TIMEOUTS.short })
 }
 
+/**
+ * A device keeps settling after `bootstatus` returns, and CoreSimulator answers `Unable to lookup
+ * in current state: Shutting Down` (error 405) while it does. A freshly created template hits it
+ * reliably, and failing there wastes the whole bake, so wait the state out.
+ */
 export async function installApp(udid: string, appPath: string) {
-  return run('xcrun', ['simctl', 'install', udid, appPath], { timeoutMs: TIMEOUTS.install })
+  for (let attempt = 0; ; attempt++) {
+    const result = await run('xcrun', ['simctl', 'install', udid, appPath], {
+      timeoutMs: TIMEOUTS.install,
+    })
+
+    if (result.exitCode === 0 || attempt === 15 || !/current state/i.test(result.stderr)) {
+      return result
+    }
+
+    await sleep(2000)
+  }
 }
 
 export async function appContainer(udid: string, bundleId: string, kind: 'app' | 'data' = 'app') {

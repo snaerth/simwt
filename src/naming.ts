@@ -39,10 +39,22 @@ export function isSimwtTemplate(name: string) {
 }
 
 /**
- * The build suffix is not decoration. Two Ready runtimes can share one identifier, so a template
- * named only for its version would silently mean either of them.
+ * The project is part of the name because a template is only ever cloned for the project it was
+ * baked for. Without it every repo competes for one name per device and runtime, so baking in one
+ * deletes the other's template and its worktrees silently fall back to a bare simulator.
+ *
+ * The build suffix is not decoration either. Two Ready runtimes can share one identifier, so a
+ * template named only for its version would silently mean either of them.
  */
-export function templateName(deviceType: string, version: string, build: string) {
+export function templateName(project: string, deviceType: string, version: string, build: string) {
+  return `${TEMPLATE_PREFIX}${slugify(project)}-${slugify(deviceType)}-${slugify(version)}-${slugify(build)}`
+}
+
+/**
+ * What `templateName` produced before the project was part of it. Only used to reclaim leftovers
+ * from before the rename, and only when the registry has no record of them.
+ */
+export function legacyTemplateName(deviceType: string, version: string, build: string) {
   return `${TEMPLATE_PREFIX}${slugify(deviceType)}-${slugify(version)}-${slugify(build)}`
 }
 

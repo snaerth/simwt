@@ -143,10 +143,19 @@ The dev client also answers on `exp+<slug>`, so the template approves that too.
 Repos pin different versions and the hash is not stable across them. Borrowing simwt's copy would
 quietly disagree with both EAS and the repo's own build cache.
 
+## A template name has to carry its project
+
+`pickTemplate` will only ever clone a template baked for the same project, so the name has to be
+project scoped too. Named for the device and runtime alone, every repo competes for one name:
+baking in one deletes the other's template, and that project's next worktree quietly comes up bare
+with `templateUdid: null` and no app installed.
+
 ## Other
 
 - `expo run:ios` has `--port` and `--no-bundler` mutually exclusive on SDK 57.
 - `simctl shutdown` on an already shut down device exits non-zero; that is not a failure.
+- `simctl bootstatus` can return while the device is still transitioning, so a call that follows
+  fails with `Unable to lookup in current state` (405) rather than on its own merits.
 - `simctl delete` leaves `~/Library/Logs/CoreSimulator/<udid>` and the host
   `com.apple.iphonesimulator` `DevicePreferences[<udid>]` entry behind.
 - Orca terminal titles are set by whatever runs in them, so a recorded handle is the only stable

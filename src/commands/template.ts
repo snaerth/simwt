@@ -1,7 +1,7 @@
 import { requireContext } from '../context.ts'
 import { read, update } from '../registry.ts'
 import { resolveRuntime, usableTemplates } from '../template.ts'
-import { templateName } from '../naming.ts'
+import { legacyTemplateName, templateName } from '../naming.ts'
 import {
   boot,
   createDevice,
@@ -40,12 +40,20 @@ async function bake(options: TemplateOptions) {
   if (bakeApps.length === 0) {
     return fail(`None of those apps exist here. This project has: ${Object.keys(config.apps).join(', ')}`)
   }
-  const name = templateName(model, runtime.version, runtime.build)
+  const name = templateName(worktree.project, model, runtime.version, runtime.build)
+  // Leftovers from before the name carried a project, plus the half baked device a failed bake
+  // leaves behind. Only ever reclaimed when nothing in the registry still claims them.
+  const legacy = legacyTemplateName(model, runtime.version, runtime.build)
+  const recorded = read().templates
 
   step(`Baking ${name} for ${worktree.project}`)
 
-  for (const stale of (await listDevices()).filter((device) => device.name === name)) {
-    step(`Removing the previous ${name}`)
+  for (const stale of (await listDevices()).filter(
+    (device) =>
+      device.name === name ||
+      (device.name === legacy && recorded[device.udid] === undefined),
+  )) {
+    step(`Removing the previous ${stale.name}`)
     await shutdown(stale.udid)
     await deleteDevice(stale.udid)
 
