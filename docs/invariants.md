@@ -151,3 +151,8 @@ quietly disagree with both EAS and the repo's own build cache.
   `com.apple.iphonesimulator` `DevicePreferences[<udid>]` entry behind.
 - Orca terminal titles are set by whatever runs in them, so a recorded handle is the only stable
   way back to a Metro tab.
+- `expo start` advertises `_expo._tcp` on the LAN with the app name, slug, both bundle ids and the
+  Expo username, and it defaults to on: `EXPO_UNSTABLE_BONJOUR` falls back to `!envIsHeadless()`
+  despite the name. `--offline` does not stop it, because mDNS is multicast rather than `fetch`.
+  `cli.ts` sets `EXPO_UNSTABLE_BONJOUR=0` and `EXPO_OFFLINE=1` on the process, and `metro.ts`
+  repeats them inline for the Orca tab, which Orca creates rather than inherits.

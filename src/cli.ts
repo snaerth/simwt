@@ -1,4 +1,5 @@
 import { setQuiet, fail, log } from './log.ts'
+import { QUIET_ON_THE_NETWORK } from './exec.ts'
 import { create } from './commands/create.ts'
 import { warm } from './commands/warm.ts'
 import { destroy } from './commands/destroy.ts'
@@ -65,7 +66,18 @@ function value(argv: string[], name: string) {
   return index === -1 ? undefined : argv[index + 1]
 }
 
+/**
+ * Setting these here rather than on each child is enough, because `childEnv` spreads
+ * `process.env`. The one path that misses out is the Orca tab, which `metro.ts` prefixes itself
+ * because the tab is created by Orca rather than spawned from here.
+ */
+function quietOnTheNetwork() {
+  Object.assign(process.env, QUIET_ON_THE_NETWORK)
+}
+
 export async function main(argv: string[]) {
+  quietOnTheNetwork()
+
   if (flag(argv, 'help') || argv[0] === 'help') {
     log(HELP)
 

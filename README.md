@@ -37,6 +37,9 @@ so none of them are usually run by hand.
 build cache, starts Metro in its own Orca tab and opens the app on it. **Metro's logs are in that
 tab**, titled `metro:<app>:<port>`. `simwt down` closes it.
 
+Metro runs with Bonjour advertising and Expo's dev-session ping turned off, so a worktree's dev
+server does not show up in anyone else's dev client. See [docs/invariants.md](docs/invariants.md).
+
 It never builds, because Orca kills a hook at two minutes. On a cache miss it says so and leaves
 the app for `simwt up`, which may build.
 

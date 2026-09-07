@@ -10,6 +10,26 @@ export function sleep(ms: number) {
 }
 
 /**
+ * A simulator bound to one worktree has no reason to announce itself. `expo start` advertises
+ * `_expo._tcp` on the LAN by default, carrying the app name, slug, both bundle ids and the Expo
+ * username, so everyone else's dev client lists a row per worktree you have open. The dev-session
+ * ping is a second, independent channel that posts the hostname and dev-server URL to Expo.
+ *
+ * Neither switch covers the other, and `--offline` notably leaves the mDNS beacon running.
+ */
+export const QUIET_ON_THE_NETWORK = {
+  EXPO_UNSTABLE_BONJOUR: '0',
+  EXPO_OFFLINE: '1',
+}
+
+/** For a command that is handed to a shell rather than spawned as a child of this process. */
+export function envPrefix(env: Record<string, string>) {
+  return Object.entries(env)
+    .map(([name, value]) => `${name}=${value}`)
+    .join(' ')
+}
+
+/**
  * CocoaPods aborts on these projects unless the locale is UTF-8, and the Expo CLI inherits the
  * same environment, so every child gets it rather than only `pod`.
  */

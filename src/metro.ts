@@ -1,4 +1,4 @@
-import { runInherit, sleep } from './exec.ts'
+import { QUIET_ON_THE_NETWORK, envPrefix, runInherit, sleep } from './exec.ts'
 import { fail, ok, step, warn } from './log.ts'
 import { isMetroUp, isPortFree } from './ports.ts'
 import { terminalClose, terminalCreate } from './orca.ts'
@@ -74,7 +74,8 @@ export async function startMetroInTab(app: App, port: number, recorded: string |
 
   const handle = await terminalCreate(
     metroTitle(app, port),
-    `bun --cwd ${JSON.stringify(app.root)} start --port ${port}`,
+    // Orca creates this tab, so unlike every other child it does not inherit what `cli.ts` set.
+    `${envPrefix(QUIET_ON_THE_NETWORK)} bun --cwd ${JSON.stringify(app.root)} start --port ${port}`,
   )
 
   if (handle === null) {
