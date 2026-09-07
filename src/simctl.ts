@@ -193,12 +193,20 @@ export async function boot(udid: string) {
   // `bootstatus` can return while the device is still transitioning, and every simctl call that
   // follows then fails on the state rather than on anything it was asked to do.
   for (let attempt = 0; attempt < 30; attempt++) {
-    if ((await findDevice(udid))?.state === 'Booted') {
+    const device = await findDevice(udid)
+
+    if (device?.state === 'Booted') {
       return
+    }
+
+    if (device === null) {
+      fail(`The simulator ${udid} disappeared while booting. Is another simwt run using it?`)
     }
 
     await sleep(1000)
   }
+
+  fail(`The simulator ${udid} never finished booting.`)
 }
 
 /** Tolerates an already shut down device, which reports a non-zero exit. */
