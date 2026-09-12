@@ -123,6 +123,17 @@ And absence of evidence is not evidence of death. If the project a simulator bel
 visible right now, because Orca is closed or a volume is not mounted, `sweep` reports `unknown`
 and leaves it alone. Only positive evidence justifies deleting.
 
+## A build is judged by its bundle, not its exit code
+
+The pod install below fails silently: `expo run:ios` exits zero, the app installs, and it caches
+like any other. It only dies in dyld at launch, on whichever worktree installs it next, so one bad
+install reaches every worktree sharing that fingerprint. `missingFrameworks` reads the `@rpath`
+loads out of the binaries and checks `Frameworks/` carries them, which is why nothing is cached or
+installed without that check.
+
+That install also leaves `Manifest.lock` and `Podfile.lock` agreeing, so a matching pair is not
+evidence the pods are sound. `--build` forces the two passes rather than trusting it.
+
 ## pod install runs twice
 
 On SDK 57 the first `pod install` after a Podfile change can leave `React.framework` out of the

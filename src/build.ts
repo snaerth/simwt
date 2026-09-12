@@ -13,8 +13,12 @@ export function cachedBuildPath(project: string, app: App, fingerprint: string) 
 /**
  * On SDK 57 the first pod install after a Podfile change can leave React.framework out of the
  * embed script, which crashes the app in dyld at launch. Running it twice is the known fix.
+ *
+ * `force` is what makes `--build` a repair rather than a repeat. That bad install leaves the two
+ * lockfiles agreeing, so the matching pair below is not evidence the pods are sound, and skipping
+ * on it would rebuild from exactly the same broken embed script.
  */
-export async function ensurePods(app: App) {
+export async function ensurePods(app: App, force = false) {
   const iosDir = path.join(app.root, 'ios')
   const manifest = path.join(iosDir, 'Pods', 'Manifest.lock')
   const lock = path.join(iosDir, 'Podfile.lock')
@@ -25,6 +29,7 @@ export async function ensurePods(app: App) {
   }
 
   if (
+    !force &&
     fs.existsSync(manifest) &&
     fs.existsSync(lock) &&
     fs.readFileSync(manifest, 'utf8') === fs.readFileSync(lock, 'utf8')
@@ -39,6 +44,49 @@ export async function ensurePods(app: App) {
       fail('pod install failed')
     }
   }
+}
+
+/**
+ * A build whose embed script dropped a framework still installs cleanly and still caches cleanly.
+ * It only fails at launch, in dyld, on whichever worktree installs it next, which is how one bad
+ * pod install reaches every worktree that shares the fingerprint.
+ *
+ * So look at the bundle rather than the exit code: collect every `@rpath/<name>.framework/...`
+ * the binaries load and check `Frameworks/` actually carries it.
+ */
+export async function missingFrameworks(appPath: string) {
+  const frameworks = path.join(appPath, 'Frameworks')
+  const present = new Set(
+    fs.existsSync(frameworks)
+      ? fs.readdirSync(frameworks).filter((entry) => entry.endsWith('.framework'))
+      : [],
+  )
+
+  const binaries = [path.join(appPath, path.basename(appPath, '.app'))]
+
+  for (const name of present) {
+    binaries.push(path.join(frameworks, name, path.basename(name, '.framework')))
+  }
+
+  const missing = new Set<string>()
+
+  for (const binary of binaries) {
+    if (!fs.existsSync(binary)) {
+      continue
+    }
+
+    const listed = await run('otool', ['-L', binary], { timeoutMs: 30_000 })
+
+    for (const line of listed.stdout.split('\n')) {
+      const match = line.trim().match(/^@rpath\/([^/]+\.framework)\//)
+
+      if (match !== null && !present.has(match[1]!)) {
+        missing.add(match[1]!)
+      }
+    }
+  }
+
+  return [...missing]
 }
 
 async function cacheBuild(udid: string, project: string, app: App, fingerprint: string) {
@@ -83,6 +131,16 @@ export async function ensureApp(options: {
   const cached = cachedBuildPath(project, app, fingerprint)
 
   if (!forceBuild && fs.existsSync(cached)) {
+    // Entries cached before this was checked, or by a hand rolled copy, are still out there.
+    const broken = await missingFrameworks(cached)
+
+    if (broken.length > 0) {
+      warn(`Cached ${app.key} build is missing ${broken.join(', ')}, discarding it`)
+      fs.rmSync(cached, { recursive: true, force: true })
+    }
+  }
+
+  if (!forceBuild && fs.existsSync(cached)) {
     step(`Installing cached ${app.key} build ${fingerprint.slice(0, 12)}`)
 
     const result = await installApp(udid, cached)
@@ -103,7 +161,7 @@ export async function ensureApp(options: {
 
   step(`Building ${app.key}, nothing cached for ${fingerprint.slice(0, 12)}`)
 
-  await ensurePods(app)
+  await ensurePods(app, forceBuild)
 
   // No --port alongside --no-bundler, the two are mutually exclusive on SDK 57. `expo run:ios`
   // ends by opening the app on an address of its own choosing, which is exactly the stale socket
@@ -122,6 +180,17 @@ export async function ensureApp(options: {
 
   if (built !== 0) {
     warn('The build succeeded but `expo run:ios` could not open the app. Carrying on.')
+  }
+
+  const bundle = await appContainer(udid, app.bundleId)
+  const broken = bundle === null ? [] : await missingFrameworks(bundle)
+
+  if (broken.length > 0) {
+    fail(
+      `The build is missing ${broken.join(', ')}, so it would crash in dyld at launch. ` +
+        'This is the pod install that drops a framework from the embed script. ' +
+        'Re-run with --build, which reinstalls the pods twice before building.',
+    )
   }
 
   await cacheBuild(udid, project, app, fingerprint)
