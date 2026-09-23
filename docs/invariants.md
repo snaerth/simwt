@@ -123,6 +123,15 @@ And absence of evidence is not evidence of death. If the project a simulator bel
 visible right now, because Orca is closed or a volume is not mounted, `sweep` reports `unknown`
 and leaves it alone. Only positive evidence justifies deleting.
 
+## An installed app is not proof that a build ran
+
+`expo run:ios` exits non-zero on a launch it could not open as well as on a build that failed, so
+the exit code alone cannot separate them. Neither can "is an app installed": one almost always is,
+because the cache installs before the build and a worktree that has run once is never empty. Taken
+as proof, a link error reads as a launch failure and the stale app left behind gets cached under
+the new fingerprint, which then spreads. Compare the installed bundle's mtime across the build and
+ask whether *this* build replaced it.
+
 ## A build is judged by its bundle, not its exit code
 
 The pod install below fails silently: `expo run:ios` exits zero, the app installs, and it caches

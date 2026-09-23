@@ -163,6 +163,10 @@ export async function ensureApp(options: {
 
   await ensurePods(app, forceBuild)
 
+  // What was on the device before, so a non-zero exit can be told apart from a failed build.
+  const previous = await appContainer(udid, app.bundleId)
+  const previousStamp = previous === null ? null : fs.statSync(previous).mtimeMs
+
   // No --port alongside --no-bundler, the two are mutually exclusive on SDK 57. `expo run:ios`
   // ends by opening the app on an address of its own choosing, which is exactly the stale socket
   // the dev client step then has to undo.
@@ -174,15 +178,24 @@ export async function ensureApp(options: {
   // against an app mid cold launch times out with POSIX 60. The build and the install are already
   // done by then, so what is installed decides whether this worked, not the exit code. We throw
   // the launch away regardless, since pointDevClient has to cold start the app itself.
-  if (built !== 0 && (await appContainer(udid, app.bundleId)) === null) {
-    fail('Native build failed')
+  //
+  // But "an app is installed" is not that evidence, because one usually is already: the cache
+  // installs before the build, and a worktree that has run once never has an empty container. A
+  // build that fails to link then reads as a launch that failed, and the stale app it left behind
+  // gets cached under the new fingerprint. So ask whether *this* build replaced it.
+  const bundle = await appContainer(udid, app.bundleId)
+  const replaced = bundle !== null && fs.statSync(bundle).mtimeMs !== previousStamp
+
+  if (built !== 0 && !replaced) {
+    fail(
+      'Native build failed, and the app on the simulator is the one that was already there. ' +
+        'The error is in the xcodebuild output above.',
+    )
   }
 
   if (built !== 0) {
     warn('The build succeeded but `expo run:ios` could not open the app. Carrying on.')
   }
-
-  const bundle = await appContainer(udid, app.bundleId)
   const broken = bundle === null ? [] : await missingFrameworks(bundle)
 
   if (broken.length > 0) {
