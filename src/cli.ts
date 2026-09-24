@@ -10,6 +10,7 @@ import { sweep } from './commands/sweep.ts'
 import { doctor } from './commands/doctor.ts'
 import { gc } from './commands/gc.ts'
 import { template } from './commands/template.ts'
+import { clean } from './commands/clean.ts'
 
 const COMMANDS = [
   'up',
@@ -20,6 +21,7 @@ const COMMANDS = [
   'status',
   'sweep',
   'gc',
+  'clean',
   'doctor',
   'template',
 ] as const
@@ -34,6 +36,7 @@ const HELP = `simwt - one iOS simulator per git worktree
   simwt status              every simwt simulator on this machine
   simwt sweep               reclaim simulators whose worktree is gone (dry run by default)
   simwt gc                  shrink simulators in place by pruning their caches
+  simwt clean [app]         discard this project's cached builds (dry run by default)
   simwt doctor              check the machine and this project
   simwt template bake       bake a golden template to clone from
   simwt template list|rm
@@ -49,6 +52,7 @@ Flags
   --no-metro                point the dev client but do not start Metro
   --apply                   actually do it, for sweep and gc
   --all                     include your own simulators, for gc
+  --native                  also discard the generated ios/, for clean
   --include-idle            also remove simulators for live but unused worktrees, for sweep
   --budget <seconds>        time warm is allowed to take
   --no-launch               warm without starting Metro or opening the app
@@ -102,6 +106,13 @@ export async function main(argv: string[]) {
   const worktree = value(argv, 'worktree')
 
   switch (command) {
+    case 'clean':
+      return clean({
+        app: value(argv, 'app') ?? rest[0],
+        worktree,
+        apply: flag(argv, 'apply'),
+        native: flag(argv, 'native'),
+      })
     case 'up':
       return up({
         app: value(argv, 'app') ?? rest[0],

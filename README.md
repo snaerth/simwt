@@ -27,6 +27,7 @@ simwt status          # every simwt simulator on this machine
 simwt doctor          # check the machine and this project
 simwt sweep           # reclaim simulators whose worktree is gone (dry run by default)
 simwt gc --all        # shrink simulators in place by pruning their caches
+simwt clean --native  # discard this project's cached builds and generated ios/ (dry run)
 simwt template bake   # bake the template that worktrees clone
 ```
 
