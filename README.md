@@ -53,12 +53,12 @@ A `simwt.json` at the repo root:
 
 ```json
 {
-  "defaultApp": "lotto",
+  "defaultApp": "customer",
   "device": "iPhone 17",
-  "warmOnCreate": ["lotto"],
+  "warmOnCreate": ["customer"],
   "apps": {
-    "lotto": { "dir": "apps/lotto" },
-    "lengjan": { "dir": "apps/lengjan" }
+    "customer": { "dir": "apps/customer" },
+    "admin": { "dir": "apps/admin" }
   }
 }
 ```

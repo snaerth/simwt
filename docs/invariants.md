@@ -53,7 +53,7 @@ worktree's Metro or another project's entirely, and *that* becomes the app conte
 `<device>/data/Library/Preferences/com.apple.launchservices.schemeapproval.plist`, a flat dict:
 
 ```
-"com.apple.CoreSimulator.CoreSimulatorBridge-->lotto-dev" = "is.aranja.lotto.dev"
+"com.apple.CoreSimulator.CoreSimulatorBridge-->myapp-dev" = "com.example.myapp.dev"
 ```
 
 The caller for `simctl openurl` is always `com.apple.CoreSimulator.CoreSimulatorBridge`, so the

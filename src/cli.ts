@@ -46,7 +46,7 @@ Flags
   --worktree <path>         act on this worktree rather than the current directory
   --device "iPhone 17"      device model, for create and template bake
   --runtime 26.0.1/23A8464  runtime pin, for template bake
-  --apps lotto,lengjan      which apps the template carries, for template bake
+  --apps customer,admin     which apps the template carries, for template bake
   --build                   force a native rebuild
   --detached                give Metro its own Orca tab and return
   --no-metro                point the dev client but do not start Metro

@@ -2,9 +2,12 @@
   "name": "simwt",
   "version": "0.1.0",
   "description": "One iOS simulator per git worktree, cloned from a golden template",
+  "license": "MIT",
   "type": "module",
   "private": true,
-  "bin": { "simwt": "./bin/simwt.ts" },
+  "bin": {
+    "simwt": "./bin/simwt.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
