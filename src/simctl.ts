@@ -40,6 +40,8 @@ export type Runtime = {
   lastUsedAt: string | null
   deletable: boolean
   unusableReason: string | null
+  /** Null when simctl did not say, so a runtime is never rejected on missing data. */
+  deviceTypes: string[] | null
 }
 
 type DeviceJson = {
@@ -120,6 +122,7 @@ export async function listRuntimes(): Promise<Runtime[]> {
   }
 
   const parsed = JSON.parse(result.stdout) as Record<string, RuntimeJson>
+  const deviceTypes = await listSupportedDeviceTypes()
 
   return Object.entries(parsed).map(([imageUUID, entry]) => ({
     imageUUID,
@@ -133,7 +136,45 @@ export async function listRuntimes(): Promise<Runtime[]> {
     lastUsedAt: entry.lastUsedAt ?? null,
     deletable: entry.deletable ?? false,
     unusableReason: entry.unusableErrorMessage ?? null,
+    deviceTypes: deviceTypes.get(entry.build ?? '') ?? null,
   }))
+}
+
+type ListedRuntimeJson = {
+  buildversion?: string
+  supportedDeviceTypes?: { identifier?: string }[]
+}
+
+/**
+ * `simctl runtime list` carries no device types, so they come from `simctl list runtimes`, keyed
+ * by build. Some runtimes support a single model, as iOS 27.1 shipped for iPhone Duo alone.
+ */
+async function listSupportedDeviceTypes() {
+  const result = await run('xcrun', ['simctl', 'list', 'runtimes', '-j'], {
+    timeoutMs: TIMEOUTS.list,
+  })
+  const byBuild = new Map<string, string[]>()
+
+  if (result.exitCode !== 0) {
+    return byBuild
+  }
+
+  const parsed = JSON.parse(result.stdout) as { runtimes?: ListedRuntimeJson[] }
+
+  for (const runtime of parsed.runtimes ?? []) {
+    if (runtime.buildversion === undefined || runtime.supportedDeviceTypes === undefined) {
+      continue
+    }
+
+    byBuild.set(
+      runtime.buildversion,
+      runtime.supportedDeviceTypes.flatMap((type) =>
+        type.identifier === undefined ? [] : [type.identifier],
+      ),
+    )
+  }
+
+  return byBuild
 }
 
 /**

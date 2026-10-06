@@ -58,6 +58,11 @@ export function legacyTemplateName(deviceType: string, version: string, build: s
   return `${TEMPLATE_PREFIX}${slugify(deviceType)}-${slugify(version)}-${slugify(build)}`
 }
 
+/** Turns a model name like "iPhone 17" into the CoreSimulator device type identifier. */
+export function deviceTypeIdentifier(model: string) {
+  return `com.apple.CoreSimulator.SimDeviceType.${model.trim().replace(/\s+/g, '-')}`
+}
+
 /** Strips the CoreSimulator prefix off a device type so it reads as a model name. */
 export function shortDeviceType(identifier: string) {
   return identifier.replace('com.apple.CoreSimulator.SimDeviceType.', '')

@@ -1,7 +1,7 @@
 import { requireContext } from '../context.ts'
 import { read, update } from '../registry.ts'
 import { resolveRuntime, usableTemplates } from '../template.ts'
-import { legacyTemplateName, templateName } from '../naming.ts'
+import { deviceTypeIdentifier, legacyTemplateName, templateName } from '../naming.ts'
 import {
   boot,
   createDevice,
@@ -33,7 +33,11 @@ async function bake(options: TemplateOptions) {
   const context = await requireContext(options.worktree)
   const { config, worktree } = context
   const model = options.device ?? config.device
-  const runtime = resolveRuntime(await listRuntimes(), options.runtime ?? config.runtime)
+  const runtime = resolveRuntime(
+    await listRuntimes(),
+    options.runtime ?? config.runtime,
+    deviceTypeIdentifier(model),
+  )
   const wanted = options.apps === undefined ? config.templateApps : options.apps.split(',')
   const bakeApps = wanted.map((key) => key.trim()).filter((key) => config.apps[key] !== undefined)
 
@@ -64,7 +68,7 @@ async function bake(options: TemplateOptions) {
 
   const created = await createDevice(
     name,
-    `com.apple.CoreSimulator.SimDeviceType.${model.trim().replace(/\s+/g, '-')}`,
+    deviceTypeIdentifier(model),
     runtime.bundlePath,
   )
 

@@ -91,12 +91,14 @@ function compareVersions(a: string, b: string) {
  * Resolves the runtime by version and build rather than identifier. Two Ready runtimes can share
  * one identifier, so `simctl create` given only the identifier picks between them silently.
  */
-export function resolveRuntime(runtimes: Runtime[], pin: string | null): Runtime {
+export function resolveRuntime(runtimes: Runtime[], pin: string | null, deviceType: string): Runtime {
   const ready = runtimes.filter((runtime) => runtime.state === 'Ready')
 
   if (ready.length === 0) {
     return fail('No usable iOS simulator runtime is installed')
   }
+
+  const model = shortDeviceType(deviceType)
 
   if (pin !== null) {
     const [version, build] = pin.split('/')
@@ -117,10 +119,24 @@ export function resolveRuntime(runtimes: Runtime[], pin: string | null): Runtime
       )
     }
 
-    return matches[0]!
+    const pinned = matches[0]!
+
+    if (!supports(pinned, deviceType)) {
+      return fail(`Runtime ${pinned.version}/${pinned.build} has no ${model} simulator.`)
+    }
+
+    return pinned
   }
 
-  const newest = [...ready].sort((a, b) => compareVersions(b.version, a.version))
+  const fitting = ready.filter((runtime) => supports(runtime, deviceType))
+
+  if (fitting.length === 0) {
+    return fail(
+      `No Ready runtime has a ${model} simulator. Available: ${ready.map((r) => `${r.version}/${r.build}`).join(', ')}`,
+    )
+  }
+
+  const newest = [...fitting].sort((a, b) => compareVersions(b.version, a.version))
   const best = newest[0]!
   const tied = newest.filter((runtime) => runtime.version === best.version)
 
@@ -131,6 +147,10 @@ export function resolveRuntime(runtimes: Runtime[], pin: string | null): Runtime
   }
 
   return best
+}
+
+function supports(runtime: Runtime, deviceType: string) {
+  return runtime.deviceTypes === null || runtime.deviceTypes.includes(deviceType)
 }
 
 export async function findTemplateDevices() {

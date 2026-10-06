@@ -1,7 +1,7 @@
 import { resolveContext } from '../context.ts'
 import { read, update } from '../registry.ts'
 import { pickTemplate, resolveRuntime } from '../template.ts'
-import { simName } from '../naming.ts'
+import { deviceTypeIdentifier, simName } from '../naming.ts'
 import {
   cloneDevice,
   createDevice,
@@ -14,10 +14,6 @@ import {
 import { note, ok, step, warn } from '../log.ts'
 
 export type CreateOptions = { worktree?: string; device?: string; force: boolean }
-
-function deviceTypeIdentifier(model: string) {
-  return `com.apple.CoreSimulator.SimDeviceType.${model.trim().replace(/\s+/g, '-')}`
-}
 
 /**
  * The worktree setup hook. Stays fast, non interactive, and exits zero whatever happens, because
@@ -89,7 +85,11 @@ export async function create(options: CreateOptions) {
   }
 
   if (udid === null) {
-    const runtime = resolveRuntime(await listRuntimes(), config.runtime)
+    const runtime = resolveRuntime(
+      await listRuntimes(),
+      config.runtime,
+      deviceTypeIdentifier(model),
+    )
 
     step(`No usable template, creating a bare ${model}`)
 
