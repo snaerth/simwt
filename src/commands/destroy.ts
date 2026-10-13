@@ -5,6 +5,8 @@ import { read, update } from '../registry.ts'
 import { resolveWorktree } from '../worktree.ts'
 import { deleteDevice, listDevices, shutdown } from '../simctl.ts'
 import { terminalClose } from '../orca.ts'
+import { buildsUnder, listDerivedBuilds, removeBuild } from '../derivedData.ts'
+import { formatBytes } from '../disk.ts'
 import { ok, warn } from '../log.ts'
 
 export type DestroyOptions = { worktree?: string }
@@ -22,6 +24,27 @@ async function cleanUpAfterDelete(udid: string) {
 }
 
 /**
+ * The simulator is the small half. Xcode's build folder for this worktree is several gigabytes
+ * and outlives the checkout, so a worktree archived without this leaves more behind than it took.
+ */
+async function reclaimDerivedData(worktreePath: string) {
+  const builds = buildsUnder(await listDerivedBuilds(), worktreePath)
+
+  if (builds.length === 0) {
+    return
+  }
+
+  for (const build of builds) {
+    removeBuild(build)
+  }
+
+  ok(
+    `Removed ${builds.length} Xcode build folder(s), ` +
+      `${formatBytes(builds.reduce((total, build) => total + build.bytes, 0))}`,
+  )
+}
+
+/**
  * The worktree archive hook. Driven by the explicit path, because the hook runs before the
  * archive so the directory still exists and "is it gone" is not yet a usable signal. Always
  * exits zero, since a simctl hiccup must never block an archive.
@@ -32,10 +55,6 @@ export async function destroy(options: DestroyOptions) {
   const entries = Object.entries(state.sims).filter(
     ([, sim]) => sim.worktreePath === worktree.path,
   )
-
-  if (entries.length === 0) {
-    return
-  }
 
   const devices = await listDevices()
 
@@ -65,4 +84,6 @@ export async function destroy(options: DestroyOptions) {
 
     ok(`Removed ${sim.name}`)
   }
+
+  await reclaimDerivedData(worktree.path)
 }

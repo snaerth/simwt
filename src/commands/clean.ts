@@ -4,19 +4,13 @@ import { requireContext } from '../context.ts'
 import { resolveApp } from '../expoConfig.ts'
 import { BUILD_CACHE_DIR } from '../registry.ts'
 import { run } from '../exec.ts'
-import { formatBytes } from '../disk.ts'
+import { buildsUnder, listDerivedBuilds } from '../derivedData.ts'
+import { dirBytes, formatBytes } from '../disk.ts'
 import { DIM, RESET, log, ok, step, warn } from '../log.ts'
 
 export type CleanOptions = { app?: string; worktree?: string; apply: boolean; native: boolean }
 
 type Target = { label: string; path: string; bytes: number }
-
-async function dirBytes(target: string) {
-  const measured = await run('du', ['-sk', target], { timeoutMs: 120_000 })
-  const kb = Number.parseInt(measured.stdout.trim().split(/\s+/)[0] ?? '0', 10)
-
-  return Number.isNaN(kb) ? 0 : kb * 1024
-}
 
 /**
  * A generated native project is safe to delete and a checked in one is not, and the repo already
@@ -57,6 +51,8 @@ export async function clean(options: CleanOptions) {
   }
 
   if (options.native) {
+    const derived = await listDerivedBuilds()
+
     for (const key of keys) {
       const app = await resolveApp(config, key, worktree.path)
       const ios = path.join(app.root, 'ios')
@@ -71,6 +67,16 @@ export async function clean(options: CleanOptions) {
       }
 
       targets.push({ label: `${key} ios/ (generated)`, path: ios, bytes: await dirBytes(ios) })
+
+      // Regenerating ios/ strands whatever Xcode built from it, and that folder is an order of
+      // magnitude larger than everything else here put together.
+      for (const build of buildsUnder(derived, app.root)) {
+        targets.push({
+          label: `${key} Xcode build folder ${build.name}`,
+          path: build.path,
+          bytes: build.bytes,
+        })
+      }
     }
   }
 

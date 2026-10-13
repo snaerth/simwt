@@ -34,7 +34,7 @@ const HELP = `simwt - one iOS simulator per git worktree
   simwt destroy             delete this worktree's simulator (worktree archive hook)
   simwt down [app]          stop this worktree's detached Metro
   simwt status              every simwt simulator on this machine
-  simwt sweep               reclaim simulators whose worktree is gone (dry run by default)
+  simwt sweep               reclaim simulators and build folders whose worktree is gone
   simwt gc                  shrink simulators in place by pruning their caches
   simwt clean [app]         discard this project's cached builds (dry run by default)
   simwt doctor              check the machine and this project
@@ -52,7 +52,7 @@ Flags
   --no-metro                point the dev client but do not start Metro
   --apply                   actually do it, for sweep and gc
   --all                     include your own simulators, for gc
-  --native                  also discard the generated ios/, for clean
+  --native                  also discard the generated ios/ and its Xcode build folder
   --include-idle            also remove simulators for live but unused worktrees, for sweep
   --budget <seconds>        time warm is allowed to take
   --no-launch               warm without starting Metro or opening the app

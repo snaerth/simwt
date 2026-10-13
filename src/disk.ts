@@ -29,3 +29,11 @@ export async function freeBytes() {
 
   return match === null ? null : Number(match[1])
 }
+
+/** `du` rather than a walk, because these are build folders with hundreds of thousands of files. */
+export async function dirBytes(target: string) {
+  const measured = await run('du', ['-sk', target], { timeoutMs: 120_000 })
+  const kb = Number.parseInt(measured.stdout.trim().split(/\s+/)[0] ?? '0', 10)
+
+  return Number.isNaN(kb) ? 0 : kb * 1024
+}

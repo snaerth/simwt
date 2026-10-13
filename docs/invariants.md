@@ -163,6 +163,19 @@ The dev client also answers on `exp+<slug>`, so the template approves that too.
 Repos pin different versions and the hash is not stable across them. Borrowing simwt's copy would
 quietly disagree with both EAS and the repo's own build cache.
 
+## Xcode's build folder belongs to the worktree
+
+DerivedData is keyed by the absolute path of the workspace, so a simulator per worktree is also a
+build folder per worktree, at three to six gigabytes each. Nothing in Xcode ever removes one, and
+the worktree being archived does not make it go: on this machine eight archived worktrees were
+holding 26 GB, ten times what the whole build cache holds. So the build folder is reclaimed
+wherever the checkout it belongs to goes away, which is `destroy`, `sweep`, and `clean --native`.
+
+The workspace path missing is what proves the folder is dead, since Xcode only wrote that path
+because the checkout was there. A path outside the home directory is never judged, because an
+unmounted volume looks exactly like a deleted one. Folders with no `info.plist` are the shared
+caches, `ModuleCache.noindex` and friends, which belong to every project and are never touched.
+
 ## A template name has to carry its project
 
 `pickTemplate` will only ever clone a template baked for the same project, so the name has to be

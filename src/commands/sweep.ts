@@ -7,6 +7,7 @@ import { deleteDevice, listDevices, shutdown, type Device } from '../simctl.ts'
 import { listWorktrees } from '../orca.ts'
 import { isLiveWorktree } from '../worktree.ts'
 import { isMetroUp } from '../ports.ts'
+import { isOrphan, listDerivedBuilds, removeBuild } from '../derivedData.ts'
 import { formatBytes } from '../disk.ts'
 import { DIM, RESET, log, ok, warn } from '../log.ts'
 
@@ -95,17 +96,29 @@ export async function sweep(options: SweepOptions) {
     candidates.push(await classify(device, options.olderThanDays))
   }
 
+  // Xcode's build folder for a worktree outlives the worktree, and at several gigabytes each
+  // these are usually a larger pile than the simulators themselves.
+  const derived = (await listDerivedBuilds()).filter(isOrphan)
   const idle = candidates.filter((candidate) => candidate.verdict === 'idle')
   const orphans = candidates.filter(
     (candidate) =>
       candidate.verdict === 'orphan' || (options.includeIdle && candidate.verdict === 'idle'),
   )
-  const reclaimable = orphans.reduce((total, candidate) => total + candidate.device.dataPathSize, 0)
+  const reclaimable =
+    orphans.reduce((total, candidate) => total + candidate.device.dataPathSize, 0) +
+    derived.reduce((total, build) => total + build.bytes, 0)
 
   for (const candidate of candidates) {
     log(
       `${candidate.verdict.padEnd(8)} ${candidate.device.name.padEnd(44)} ` +
         `${formatBytes(candidate.device.dataPathSize).padEnd(9)} ${DIM}${candidate.reason}${RESET}`,
+    )
+  }
+
+  for (const build of derived) {
+    log(
+      `orphan   ${'xcode build folder'.padEnd(44)} ${formatBytes(build.bytes).padEnd(9)} ` +
+        `${DIM}${build.workspace} is gone${RESET}`,
     )
   }
 
@@ -115,7 +128,7 @@ export async function sweep(options: SweepOptions) {
     (udid) => !devices.some((device) => device.udid === udid),
   )
 
-  if (orphans.length === 0 && stale.length === 0) {
+  if (orphans.length === 0 && stale.length === 0 && derived.length === 0) {
     log('Nothing to reclaim')
 
     return
@@ -124,7 +137,8 @@ export async function sweep(options: SweepOptions) {
   if (!options.apply) {
     log('')
     log(
-      `Would remove ${orphans.length} simulator(s) and ${stale.length} stale record(s), reclaiming ${formatBytes(reclaimable)}.`,
+      `Would remove ${orphans.length} simulator(s), ${derived.length} Xcode build folder(s) ` +
+        `and ${stale.length} stale record(s), reclaiming ${formatBytes(reclaimable)}.`,
     )
     log('Re-run with --apply to do it.')
 
@@ -159,6 +173,12 @@ export async function sweep(options: SweepOptions) {
     })
 
     ok(`Removed ${candidate.device.name}`)
+  }
+
+  for (const build of derived) {
+    removeBuild(build)
+
+    ok(`Removed the Xcode build folder for ${build.workspace}`)
   }
 
   if (stale.length > 0) {

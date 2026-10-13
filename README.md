@@ -25,9 +25,9 @@ simwt up [app]        # bring this worktree up and run Metro
 simwt down [app]      # stop this worktree's detached Metro
 simwt status          # every simwt simulator on this machine
 simwt doctor          # check the machine and this project
-simwt sweep           # reclaim simulators whose worktree is gone (dry run by default)
+simwt sweep           # reclaim simulators and Xcode build folders whose worktree is gone
 simwt gc --all        # shrink simulators in place by pruning their caches
-simwt clean --native  # discard this project's cached builds and generated ios/ (dry run)
+simwt clean --native  # discard this project's cached builds, generated ios/ and build folder
 simwt template bake   # bake the template that worktrees clone
 ```
 
