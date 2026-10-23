@@ -122,13 +122,20 @@ export async function sweep(options: SweepOptions) {
     )
   }
 
-  // Registry entries whose device is gone cost nothing to hold but make status lie.
+  // Registry entries whose device is gone cost nothing to hold but make status lie. Templates
+  // leak these the same way sims do, and a duplicate name makes `template rm` ambiguous, so the
+  // udid is what settles it here.
   const state = read()
-  const stale = Object.keys(state.sims).filter(
-    (udid) => !devices.some((device) => device.udid === udid),
-  )
+  const gone = (udid: string) => !devices.some((device) => device.udid === udid)
+  const stale = Object.keys(state.sims).filter(gone)
+  const staleTemplates = Object.keys(state.templates).filter(gone)
 
-  if (orphans.length === 0 && stale.length === 0 && derived.length === 0) {
+  if (
+    orphans.length === 0 &&
+    stale.length === 0 &&
+    staleTemplates.length === 0 &&
+    derived.length === 0
+  ) {
     log('Nothing to reclaim')
 
     return
@@ -138,7 +145,8 @@ export async function sweep(options: SweepOptions) {
     log('')
     log(
       `Would remove ${orphans.length} simulator(s), ${derived.length} Xcode build folder(s) ` +
-        `and ${stale.length} stale record(s), reclaiming ${formatBytes(reclaimable)}.`,
+        `and ${stale.length + staleTemplates.length} stale record(s), ` +
+        `reclaiming ${formatBytes(reclaimable)}.`,
     )
     log('Re-run with --apply to do it.')
 
@@ -181,13 +189,17 @@ export async function sweep(options: SweepOptions) {
     ok(`Removed the Xcode build folder for ${build.workspace}`)
   }
 
-  if (stale.length > 0) {
+  if (stale.length > 0 || staleTemplates.length > 0) {
     await update((draft) => {
       for (const udid of stale) {
         delete draft.sims[udid]
       }
+
+      for (const udid of staleTemplates) {
+        delete draft.templates[udid]
+      }
     })
 
-    ok(`Dropped ${stale.length} stale record(s)`)
+    ok(`Dropped ${stale.length + staleTemplates.length} stale record(s)`)
   }
 }
