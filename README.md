@@ -34,9 +34,13 @@ simwt template bake   # bake the template that worktrees clone
 `simwt create` and `simwt warm` are the worktree setup hooks and `simwt destroy` the archive hook,
 so none of them are usually run by hand.
 
-`warm` boots the simulator, shows it in Orca's mobile emulator tab, installs the app from the
-build cache, starts Metro in its own Orca tab and opens the app on it. **Metro's logs are in that
-tab**, titled `metro:<app>:<port>`. `simwt down` closes it.
+`warm` boots the simulator, installs the app from the build cache, starts Metro in its own Orca
+tab and opens the app on it. **Metro's logs are in that tab**, titled `metro:<app>:<port>`.
+`simwt down` closes it.
+
+The simulator shows up in Xcode's Device Hub. To also show it in Orca's mobile emulator tab, set
+`SIMWT_ORCA_PANE=1` in your shell profile and in the Orca Setup Script. It is off by default
+because Device Hub takes over a simulator's input, so Orca's tab can show it but not drive it.
 
 Metro runs with Bonjour advertising and Expo's dev-session ping turned off, so a worktree's dev
 server does not show up in anyone else's dev client. See [docs/invariants.md](docs/invariants.md).

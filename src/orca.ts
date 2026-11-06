@@ -35,14 +35,16 @@ async function orcaJson<T>(args: string[]): Promise<T | null> {
 }
 
 /**
- * Opens the mobile emulator tab in Orca and points it at this device.
+ * Opens the mobile emulator tab in Orca and points it at this device, only when
+ * `SIMWT_ORCA_PANE=1`. Off by default because Xcode's Device Hub takes over input for any
+ * simulator it shows, which leaves Orca's tab displaying a device it cannot drive.
  *
  * The worktree has to be named explicitly. A hook shell has no active worktree, so without it
  * Orca either picks the wrong one or attaches nowhere, and the simulator ends up running with no
  * window anywhere, which reads as nothing having happened.
  */
 export async function attachPane(udid: string, worktreePath: string) {
-  if (await hasOrca()) {
+  if (process.env.SIMWT_ORCA_PANE === '1' && (await hasOrca())) {
     await run(
       'orca',
       ['emulator', 'attach', udid, '--worktree', `path:${worktreePath}`, '--focus'],

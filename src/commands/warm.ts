@@ -11,9 +11,9 @@ import { note, ok, warn } from '../log.ts'
 export type WarmOptions = { worktree?: string; budgetSeconds: number; launch: boolean }
 
 /**
- * The second half of the worktree setup hook. Boots the simulator, shows it in Orca, installs
- * whatever the build cache already has and, unless told not to, starts Metro in its own tab and
- * opens the app on it.
+ * The second half of the worktree setup hook. Boots the simulator, optionally shows it in Orca,
+ * installs whatever the build cache already has and, unless told not to, starts Metro in its own
+ * tab and opens the app on it.
  *
  * It never builds. Orca kills a hook at two minutes and a native build takes minutes, so a cache
  * miss has to end as a note rather than a stall.
@@ -42,8 +42,7 @@ export async function warm(options: WarmOptions) {
     await boot(sim.udid)
   }
 
-  // Without this the simulator runs with no window in Orca, which reads as nothing having
-  // happened at all.
+  // Opt in, see `attachPane`. Device Hub shows the booted simulator either way.
   await attachPane(sim.udid, context.worktree.path)
 
   for (const appKey of context.config.warmOnCreate) {
